@@ -9,17 +9,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mongodb:
-        image: mongo:5
-        options: >-
-          --health-cmd mongosh
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 27017:27017
-
     steps:
       - uses: actions/checkout@v4
       
@@ -28,12 +17,14 @@ jobs:
         with:
           node-version: '20'
       
-      - name: Install dependencies
+      - name: Install backend dependencies
+        run: cd library-backend && npm install
+      
+      - name: Install test dependencies
         run: cd tests-chapter4 && npm install
       
       - name: Run tests
         run: cd tests-chapter4 && npm test
         env:
-          MONGODB_URI: mongodb://localhost:27017/library-test
           NODE_ENV: test
           JWT_SECRET: test-secret
