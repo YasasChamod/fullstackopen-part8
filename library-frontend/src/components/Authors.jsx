@@ -47,7 +47,10 @@ const Authors = (props) => {
 
     const response = await fetch('http://localhost:4000/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${props.token}`,
+      },
       body: JSON.stringify({
         query: `
           mutation EditAuthor($name: String!, $setBornTo: Int!) {
@@ -99,28 +102,41 @@ const Authors = (props) => {
         </tbody>
       </table>
 
-      <h3>Set birthyear</h3>
-      <form onSubmit={submit}>
-        <div>
-          name
-          <select value={name} onChange={({ target }) => setName(target.value)}>
-            {authors.map((author) => (
-              <option key={author.id} value={author.name}>
-                {author.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          born
-          <input
-            type="number"
-            value={born}
-            onChange={({ target }) => setBorn(target.value)}
-          />
-        </div>
-        <button type="submit">update author</button>
-      </form>
+      {!props.token ? (
+        <div>Log in to update author birth years.</div>
+      ) : (
+        <>
+          <h3>Set birthyear</h3>
+          <form onSubmit={submit}>
+              <div>
+                <label htmlFor="name">name</label>
+                <select
+                  id="name"
+                  name="name"
+                  value={name}
+                  onChange={({ target }) => setName(target.value)}
+                >
+                  {authors.map((author) => (
+                    <option key={author.id} value={author.name}>
+                      {author.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="born">born</label>
+                <input
+                  id="born"
+                  name="born"
+                  type="number"
+                  value={born}
+                  onChange={({ target }) => setBorn(target.value)}
+                />
+              </div>
+            <button type="submit">update author</button>
+          </form>
+        </>
+      )}
     </div>
   )
 }

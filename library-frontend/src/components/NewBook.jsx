@@ -16,7 +16,10 @@ const NewBook = (props) => {
 
     const response = await fetch('http://localhost:4000/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${props.token}`,
+      },
       body: JSON.stringify({
         query: `
           mutation AddBook(
@@ -32,7 +35,9 @@ const NewBook = (props) => {
               genres: $genres
             ) {
               title
-              author
+              author {
+                name
+              }
             }
           }
         `,
@@ -67,6 +72,7 @@ const NewBook = (props) => {
 
   return (
     <div>
+      <h2>add book</h2>
       <form onSubmit={submit}>
         <div>
           title
