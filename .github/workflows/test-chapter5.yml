@@ -1,0 +1,36 @@
+name: Test Chapter 5
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install backend dependencies
+        run: cd library-backend && npm install
+      
+      - name: Install frontend dev dependencies
+        run: cd library-frontend && npm install
+
+      - name: Install test dependencies
+        run: cd tests-chapter5 && npm install
+
+      - name: Install Playwright browsers
+        run: cd tests-chapter5 && npx playwright install chromium
+
+      - name: Run tests
+        run: cd tests-chapter5 && npm test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test-secret
