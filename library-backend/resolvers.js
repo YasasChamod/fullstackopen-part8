@@ -47,6 +47,7 @@ const resolvers = {
       // return plain objects with a precomputed `bookCount` field to avoid per-author DB calls
       return authors.map((a) => {
         const obj = a.toObject ? a.toObject() : a
+        obj.id = a._id.toString()
         obj.bookCount = countMap[a._id.toString()] || 0
         return obj
       })

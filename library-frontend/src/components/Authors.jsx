@@ -11,7 +11,7 @@ const Authors = (props) => {
     }
 
     const fetchAuthors = async () => {
-      const response = await fetch('http://localhost:4000/graphql', {
+      const response = await fetch('http://localhost:4000/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -45,7 +45,7 @@ const Authors = (props) => {
   const submit = async (event) => {
     event.preventDefault()
 
-    const response = await fetch('http://localhost:4000/graphql', {
+    const response = await fetch('http://localhost:4000/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

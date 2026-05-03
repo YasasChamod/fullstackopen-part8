@@ -1,5 +1,5 @@
 const { ApolloServer } = require('@apollo/server')
-const { expressMiddleware } = require('@apollo/server/express4')
+const { expressMiddleware } = require('@as-integrations/express4')
 const { makeExecutableSchema } = require('@graphql-tools/schema')
 const express = require('express')
 const http = require('http')
@@ -35,28 +35,37 @@ async function start() {
   const server = new ApolloServer({ schema })
   await server.start()
 
-  app.use(
-    '/graphql',
-    cors(),
-    bodyParser.json(),
-    expressMiddleware(server, {
-      context: async ({ req }) => {
-        const auth = req.headers.authorization || ''
-        if (auth && auth.toLowerCase().startsWith('bearer ')) {
-          const token = auth.substring(7)
-          try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET)
-            const User = require('./models/user')
-            const currentUser = await User.findById(decoded.id)
-            return { currentUser }
-          } catch (e) {
-            return {}
-          }
+  app.use(cors())
+
+  app.get('/', (_req, res) => {
+    res.status(200).send('ok')
+  })
+
+  const graphqlMiddleware = expressMiddleware(server, {
+    context: async ({ req }) => {
+      const auth = req.headers.authorization || ''
+      if (auth && auth.toLowerCase().startsWith('bearer ')) {
+        const token = auth.substring(7)
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET)
+          const User = require('./models/user')
+          const currentUser = await User.findById(decoded.id)
+          return { currentUser }
+        } catch (e) {
+          return {}
         }
-        return {}
-      },
-    })
+      }
+      return {}
+    },
+  })
+
+  app.post(
+    '/',
+    bodyParser.json(),
+    graphqlMiddleware
   )
+
+  app.post('/graphql', bodyParser.json(), graphqlMiddleware)
 
   // Set up WebSocket server for subscriptions
   const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' })

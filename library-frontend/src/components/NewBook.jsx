@@ -14,7 +14,7 @@ const NewBook = (props) => {
   const submit = async (event) => {
     event.preventDefault()
 
-    const response = await fetch('http://localhost:4000/graphql', {
+    const response = await fetch('http://localhost:4000/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
