@@ -15,6 +15,13 @@
     "graphql": "^16.13.2",
     "mongoose": "^7.5.0",
     "bcrypt": "^5.1.0",
-    "jsonwebtoken": "^9.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "graphql-subscriptions": "^2.1.1",
+    "graphql-ws": "^5.13.0",
+    "ws": "^8.13.0",
+    "express": "^4.18.4",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "@graphql-tools/schema": "^9.0.17"
   }
 }

@@ -1,5 +1,12 @@
 const { ApolloServer } = require('@apollo/server')
-const { startStandaloneServer } = require('@apollo/server/standalone')
+const { expressMiddleware } = require('@apollo/server/express4')
+const { makeExecutableSchema } = require('@graphql-tools/schema')
+const express = require('express')
+const http = require('http')
+const cors = require('cors')
+const bodyParser = require('body-parser')
+const { WebSocketServer } = require('ws')
+const { useServer } = require('graphql-ws/lib/use/ws')
 const mongoose = require('mongoose')
 const jwt = require('jsonwebtoken')
 
@@ -19,28 +26,67 @@ mongoose
     console.error('error connection to MongoDB:', err.message)
   })
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-})
+const schema = makeExecutableSchema({ typeDefs, resolvers })
 
-startStandaloneServer(server, {
-  listen: { port: process.env.PORT || 4000 },
-  context: async ({ req }) => {
-    const auth = req.headers.authorization || ''
-    if (auth && auth.toLowerCase().startsWith('bearer ')) {
-      const token = auth.substring(7)
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        const User = require('./models/user')
-        const currentUser = await User.findById(decoded.id)
-        return { currentUser }
-      } catch (e) {
+async function start() {
+  const app = express()
+  const httpServer = http.createServer(app)
+
+  const server = new ApolloServer({ schema })
+  await server.start()
+
+  app.use(
+    '/graphql',
+    cors(),
+    bodyParser.json(),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const auth = req.headers.authorization || ''
+        if (auth && auth.toLowerCase().startsWith('bearer ')) {
+          const token = auth.substring(7)
+          try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            const User = require('./models/user')
+            const currentUser = await User.findById(decoded.id)
+            return { currentUser }
+          } catch (e) {
+            return {}
+          }
+        }
         return {}
-      }
-    }
-    return {}
-  },
-}).then(({ url }) => {
-  console.log(`Server ready at ${url}`)
-})
+      },
+    })
+  )
+
+  // Set up WebSocket server for subscriptions
+  const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' })
+  useServer(
+    {
+      schema,
+      context: async (ctx, msg, args) => {
+        const connectionParams = ctx.connectionParams || {}
+        const auth = connectionParams.authorization || connectionParams.Authorization || ''
+        if (auth && auth.toLowerCase().startsWith('bearer ')) {
+          const token = auth.substring(7)
+          try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            const User = require('./models/user')
+            const currentUser = await User.findById(decoded.id)
+            return { currentUser }
+          } catch (e) {
+            return {}
+          }
+        }
+        return {}
+      },
+    },
+    wsServer
+  )
+
+  const PORT = process.env.PORT || 4000
+  httpServer.listen(PORT, () => {
+    console.log(`Server ready at http://localhost:${PORT}/graphql`)
+  })
+}
+
+start()

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createClient } from 'graphql-ws'
 import Authors from './components/Authors'
 import Books from './components/Books'
 import Login from './components/Login'
@@ -15,6 +16,47 @@ const App = () => {
       localStorage.setItem('library-user-token', token)
     } else {
       localStorage.removeItem('library-user-token')
+    }
+  }, [token])
+
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const host = window.location.hostname || 'localhost'
+    const url = `${protocol}://${host}:4000/graphql`
+
+    const client = createClient({
+      url,
+      connectionParams: { authorization: token ? `Bearer ${token}` : '' },
+    })
+
+    const unsubscribe = client.subscribe(
+      {
+        query: `subscription { bookAdded { id title published genres author { name id born } } }`,
+      },
+      {
+        next: (result) => {
+          if (result.data && result.data.bookAdded) {
+            const b = result.data.bookAdded
+            try {
+              window.alert(`New book added: ${b.title} by ${b.author?.name || 'unknown'}`)
+            } catch (e) {
+              /* ignore in non-browser environments */
+            }
+            setRefreshKey((c) => c + 1)
+            setPage('books')
+          }
+        },
+        error: (err) => console.error('Subscription error', err),
+        complete: () => console.log('Subscription complete'),
+      }
+    )
+
+    return () => {
+      try {
+        unsubscribe()
+      } catch (e) {
+        // ignore
+      }
     }
   }, [token])
 

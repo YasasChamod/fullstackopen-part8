@@ -9,7 +9,7 @@ const Recommend = (props) => {
 
     const fetchData = async () => {
       // fetch current user
-      const meResp = await fetch('http://localhost:4000/', {
+      const meResp = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +24,7 @@ const Recommend = (props) => {
       if (!fav) return
 
       // fetch books with that genre using server-side filter
-      const booksResp = await fetch('http://localhost:4000/', {
+      const booksResp = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

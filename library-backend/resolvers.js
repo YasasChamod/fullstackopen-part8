@@ -4,6 +4,9 @@ const User = require('./models/user')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const { GraphQLError } = require('graphql')
+const { PubSub } = require('graphql-subscriptions')
+
+const pubsub = new PubSub()
 
 const resolvers = {
   Query: {
@@ -30,7 +33,24 @@ const resolvers = {
 
       return Book.find(query).populate('author')
     },
-    allAuthors: async () => Author.find({}),
+    allAuthors: async () => {
+      // fetch authors and book counts in two queries to avoid N+1
+      const authors = await Author.find({})
+      const counts = await Book.aggregate([
+        { $group: { _id: '$author', count: { $sum: 1 } } },
+      ])
+      const countMap = {}
+      counts.forEach((c) => {
+        countMap[c._id?.toString()] = c.count
+      })
+
+      // return plain objects with a precomputed `bookCount` field to avoid per-author DB calls
+      return authors.map((a) => {
+        const obj = a.toObject ? a.toObject() : a
+        obj.bookCount = countMap[a._id.toString()] || 0
+        return obj
+      })
+    },
     me: (root, args, context) => context.currentUser || null,
   },
   Mutation: {
@@ -58,7 +78,9 @@ const resolvers = {
 
         await book.save()
         // populate before return
-        return Book.findById(book._id).populate('author')
+        const saved = await Book.findById(book._id).populate('author')
+        pubsub.publish('BOOK_ADDED', { bookAdded: saved })
+        return saved
       } catch (error) {
         if (error.name === 'ValidationError') {
           throw new GraphQLError(error.message, {
@@ -158,7 +180,16 @@ const resolvers = {
   },
   Author: {
     bookCount: async (root) => {
+      // if `allAuthors` attached a precomputed bookCount, use it
+      if (root.bookCount !== undefined && root.bookCount !== null) {
+        return root.bookCount
+      }
       return Book.countDocuments({ author: root._id })
+    },
+  },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterator(['BOOK_ADDED']),
     },
   },
 }
