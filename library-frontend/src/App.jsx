@@ -10,6 +10,7 @@ const App = () => {
   const [page, setPage] = useState('authors')
   const [refreshKey, setRefreshKey] = useState(0)
   const [token, setToken] = useState(() => localStorage.getItem('library-user-token'))
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     if (token) {
@@ -37,13 +38,13 @@ const App = () => {
         next: (result) => {
           if (result.data && result.data.bookAdded) {
             const b = result.data.bookAdded
-            try {
-              window.alert(`New book added: ${b.title} by ${b.author?.name || 'unknown'}`)
-            } catch (e) {
-              /* ignore in non-browser environments */
-            }
+            setNotice(`New book added: ${b.title} by ${b.author?.name || 'unknown'}`)
             setRefreshKey((c) => c + 1)
             setPage('books')
+
+            window.setTimeout(() => {
+              setNotice('')
+            }, 5000)
           }
         },
         error: (err) => console.error('Subscription error', err),
@@ -81,6 +82,12 @@ const App = () => {
 
   return (
     <div>
+      {notice ? (
+        <div style={{ marginBottom: 12, padding: 8, background: '#eef6ff', border: '1px solid #b8d8ff' }}>
+          {notice}
+        </div>
+      ) : null}
+
       <div>
         <button onClick={() => setPage('authors')}>authors</button>
         <button onClick={() => setPage('books')}>books</button>
